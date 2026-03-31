@@ -1,0 +1,15 @@
+Id,Name,Shape Library,Page ID,Contained By,Group,Line Source,Line Destination,Source Arrow,Destination Arrow,Status,Text Area 1,Text Area 2,Text Area 3,Text Area 4,Text Area 5,Text Area 6,Text Area 7,Text Area 8,Text Area 9,Text Area 10,Text Area 11,Text Area 12,Text Area 13,Text Area 14,Text Area 15,Text Area 16,Comments,SpreadsheetColumnParentKey,SpreadsheetRowParentKey
+1,Document,,,,,,,,,Draft,Comic Database Schema,,,,,,,,,,,,,,,,,,
+2,Page,,,,,,,,,,Page 1,,,,,,,,,,,,,,,,,,
+3,"Entity (Key, Field, Type)",Entity Relationship,2,,,,,,,,Publishers ,PK,publisher_id,INTEGER,,name,TEXT,,country,TEXT,,,,,,,,DEFAULT_EMPTY,Primary_0
+4,"Entity (Key, Field, Type)",Entity Relationship,2,,,,,,,,Series,PK,series_id,INTEGER,FK,publisher_id,INTEGER,,title,TEXT,Key,start_year,INTEGER,Key,end_year,INTEGER,,DEFAULT_EMPTY,Primary_0
+5,"Entity (Key, Field, Type)",Entity Relationship,2,,,,,,,,Issue_Characters,"PK part, FK → issues.issue_id",issue_id,INTEGER,"PK part, FK → characters.character_id",character_id,INTEGER,,appearance,INTEGER,,,,,,,,DEFAULT_EMPTY,Primary_0
+6,"Entity (Key, Field, Type)",Entity Relationship,2,,,,,,,,Issues,PK,issue_id,INTEGER,FK → series.series_id,series_id,INTEGER,,issue_number,INTEGER,Key,title,TEXT,Key,release_date,TEXT,,DEFAULT_EMPTY,Primary_0
+7,"Entity (Key, Field, Type)",Entity Relationship,2,,,,,,,,Characters ,PK,character_id,INTEGER,,name,TEXT,,alignment,TEXT,Key,universe,TEXT,Key,gender,TEXT,,DEFAULT_EMPTY,Primary_0
+8,One to Many,Process Engineering,2,,,,,,,,,,,,,,,,,,,,,,,,,,
+9,One to Many,Process Engineering,2,,,,,,,,,,,,,,,,,,,,,,,,,,
+10,One to Many,Process Engineering,2,,,,,,,,,,,,,,,,,,,,,,,,,,
+11,One to Many,Process Engineering,2,,,,,,,,,,,,,,,,,,,,,,,,,,
+12,One to Many,Process Engineering,2,,,,,,,,,,,,,,,,,,,,,,,,,,
+13,Line,,2,,,11,4,None,Arrow,,,,,,,,,,,,,,,,,,,,
+14,Line,,2,,,9,5,None,Arrow,,,,,,,,,,,,,,,,,,,,
