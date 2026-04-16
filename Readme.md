@@ -1,1 +1,58 @@
-Welcome, dear reader, to my Data Work project. To run the project fully, you want to make sure you use pip install -r requirements.txt in the terminal. Once everything is installed, you should be able to create your virtual environment with python -m venv .venv (.venv is optional. You can name it .anything you want. .comiccity would be fun.) If you do not have a sqlite viewer, you will need to go to extensions to download either sqlite viewer or sqlite explorer plus so that you can view the database! Once all of that is installed and running, you can click on data.ipynb. That has my data cleaning process, imports and graphs! comics.py has my sqlite server build and functions! The database holds false data I made up that aligns with the comicbook data but is not drawn specifically from the data. Comic_Database_Schema.csv has my schema depiction converted into CSV! flowchart.png has the picture of the flowchart and how it should flow. dc-wikia-data.csv and marvel-wikia-data.csv hold the data I use to clean and work for the graphs. 
+# 📘 Project Setup & Overview
+
+To run this project successfully, complete the following steps:
+
+- Install all required Python packages  
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+- Create a virtual environment  
+    ```bash
+    python -m venv .venv
+    ```
+    - *(You can rename `.venv` to anything you like — `.comiccity` works too.)*
+
+- Install a SQLite viewer extension in VS Code  
+    - **SQLite Viewer**  
+    - **SQLite Explorer Plus**  
+    - *(Either one will let you inspect the database.)*
+
+- Explore the project files:
+    - **`data.ipynb`**  
+        - Contains data cleaning steps  
+        - Imports  
+        - Graphs and visualizations  
+    - **`comics.py`**  
+        - Builds the SQLite database  
+        - Contains helper functions  
+    - **`Comic_Database_Schema.csv`**  
+        - CSV version of the database schema  
+    - **`flowchart.png`**  
+        - Visual flowchart of the project structure  
+    - **`dc-wikia-data.csv`** and **`marvel-wikia-data.csv`**  
+        - Raw datasets used for cleaning and graph generation  
+    - **Database file**  
+        - Contains fictional sample data aligned with the comic book dataset  
+        - *(Not pulled directly from the original datasets)*
+
+---
+
+# 🔗 Links (Replace with your own)
+
+- **Project Repository:**  
+  [Insert GitHub Repo Link Here](https://example.com)
+
+- **Dataset Sources:**  
+  - Marvel Wikia Data: [Insert Link](https://example.com)  
+  - DC Wikia Data: [Insert Link](https://example.com)
+
+---
+
+# 🖼️ Images (Replace with your own)
+
+![Flowchart Placeholder](https://example.com/flowchart.png)  
+*Project flowchart*
+
+![Graph Placeholder](https://example.com/graph.png)  
+*Example graph or chart*
