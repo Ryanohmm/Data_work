@@ -10,8 +10,8 @@ containing the fields:
 
 The goal here is to:
     - load the cleaned dataset
-    - build the database schema
-    - populate the Characters table
+    - build the simplified database schema
+    - populate Characters, Sex, Align, Appearances
     - expose helper query functions
 """
 
@@ -20,13 +20,10 @@ import pandas as pd
 from pathlib import Path
 
 
-# ------------------------------------------------------------
+
 # Load cleaned character data
-# ------------------------------------------------------------
+
 def load_data(cleaned_path: str) -> pd.DataFrame:
-    """
-    Load the cleaned character dataset produced by the Jupyter notebook.
-    """
     path = Path(cleaned_path)
 
     if not path.exists():
@@ -34,8 +31,7 @@ def load_data(cleaned_path: str) -> pd.DataFrame:
 
     df = pd.read_csv(path)
 
-    # Required columns based on your notebook cleaning
-    required_cols = {"name", "ALIGN", "SEX", "publisher"}
+    required_cols = {"name", "ALIGN", "SEX", "publisher", "APPEARANCES", "YEAR"}
     missing = required_cols - set(df.columns)
 
     if missing:
@@ -44,71 +40,49 @@ def load_data(cleaned_path: str) -> pd.DataFrame:
     return df
 
 
-# ------------------------------------------------------------
-# Build database schema
-# ------------------------------------------------------------
+
+# Build simplified database schema
+
 def build_database(db_path: str) -> sqlite3.Connection:
-    """
-    Create a fresh SQLite database with the required tables.
-    """
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
-    # Drop existing tables to ensure a clean rebuild
-    tables = ["Issue_Characters", "Issues", "Series", "Characters", "Publishers"]
+    tables = ["Appearances", "Characters", "Sex", "Align"]
     for t in tables:
         cur.execute(f"DROP TABLE IF EXISTS {t}")
 
-    # Publishers
     cur.execute("""
-        CREATE TABLE Publishers (
-            publisher_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            country TEXT
+        CREATE TABLE Sex (
+            sex_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sex_label TEXT NOT NULL
         )
     """)
 
-    # Characters
+    cur.execute("""
+        CREATE TABLE Align (
+            align_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            align_label TEXT NOT NULL
+        )
+    """)
+
     cur.execute("""
         CREATE TABLE Characters (
             character_id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            alignment TEXT,
-            universe TEXT,
-            gender TEXT
-        )
-    """)
-
-    # Minimal Series + Issues tables
-    cur.execute("""
-        CREATE TABLE Series (
-            series_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            publisher_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            start_year INTEGER,
-            end_year INTEGER,
-            FOREIGN KEY (publisher_id) REFERENCES Publishers(publisher_id)
+            publisher TEXT NOT NULL,
+            sex_id INTEGER,
+            align_id INTEGER,
+            FOREIGN KEY (sex_id) REFERENCES Sex(sex_id),
+            FOREIGN KEY (align_id) REFERENCES Align(align_id)
         )
     """)
 
     cur.execute("""
-        CREATE TABLE Issues (
-            issue_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            series_id INTEGER NOT NULL,
-            issue_number INTEGER NOT NULL,
-            title TEXT,
-            release_date TEXT,
-            FOREIGN KEY (series_id) REFERENCES Series(series_id)
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE Issue_Characters (
-            issue_id INTEGER NOT NULL,
+        CREATE TABLE Appearances (
+            appearance_id INTEGER PRIMARY KEY AUTOINCREMENT,
             character_id INTEGER NOT NULL,
-            appearance INTEGER NOT NULL,
-            PRIMARY KEY (issue_id, character_id),
-            FOREIGN KEY (issue_id) REFERENCES Issues(issue_id),
+            appearances INTEGER NOT NULL,
+            year INTEGER NOT NULL,
             FOREIGN KEY (character_id) REFERENCES Characters(character_id)
         )
     """)
@@ -117,77 +91,91 @@ def build_database(db_path: str) -> sqlite3.Connection:
     return conn
 
 
-# ------------------------------------------------------------
-# Populate Characters table
-# ------------------------------------------------------------
-def populate_characters(conn: sqlite3.Connection, df: pd.DataFrame) -> None:
-    """
-    Insert cleaned character data into the Characters table.
-    """
+
+# Populate all tables
+
+def populate_all(conn: sqlite3.Connection, df: pd.DataFrame) -> None:
     cur = conn.cursor()
 
-    # Insert publishers
-    cur.executemany("""
-        INSERT INTO Publishers (name, country)
-        VALUES (?, ?)
-    """, [
-        ("Marvel Comics", "USA"),
-        ("DC Comics", "USA")
-    ])
+    # Remove rows where ALIGN or SEX is missing
+    df = df.dropna(subset=["ALIGN", "SEX"])
 
-    # Prepare character rows
+    # Ensure ALIGN and SEX are strings
+    df["ALIGN"] = df["ALIGN"].astype(str)
+    df["SEX"] = df["SEX"].astype(str)
+
+
+   
+    # Insert unique SEX values
+    
+    sex_values = sorted(df["SEX"].dropna().unique())
+    cur.executemany("INSERT INTO Sex (sex_label) VALUES (?)", [(s,) for s in sex_values])
+
+    cur.execute("SELECT sex_id, sex_label FROM Sex")
+    sex_map = {label: sid for sid, label in cur.fetchall()}
+
+    
+    # Insert unique ALIGN values
+    
+    align_values = sorted(df["ALIGN"].dropna().unique())
+    cur.executemany("INSERT INTO Align (align_label) VALUES (?)", [(a,) for a in align_values])
+
+    cur.execute("SELECT align_id, align_label FROM Align")
+    align_map = {label: aid for aid, label in cur.fetchall()}
+
+    
+    # Insert Characters
+    
     character_rows = [
-        (row["name"], row["ALIGN"], row["publisher"], row["SEX"])
+        (row["name"], row["publisher"], sex_map[row["SEX"]], align_map[row["ALIGN"]])
         for _, row in df.iterrows()
     ]
 
     cur.executemany("""
-        INSERT INTO Characters (name, alignment, universe, gender)
+        INSERT INTO Characters (name, publisher, sex_id, align_id)
         VALUES (?, ?, ?, ?)
     """, character_rows)
+
+    cur.execute("SELECT character_id, name FROM Characters")
+    character_map = {name: cid for cid, name in cur.fetchall()}
+
+    
+    # Insert Appearances
+    
+    appearance_rows = [
+        (character_map[row["name"]], int(row["APPEARANCES"]), int(row["YEAR"]))
+        for _, row in df.iterrows()
+    ]
+
+    cur.executemany("""
+        INSERT INTO Appearances (character_id, appearances, year)
+        VALUES (?, ?, ?)
+    """, appearance_rows)
 
     conn.commit()
 
 
-# ------------------------------------------------------------
-# Helper Functions
-# ------------------------------------------------------------
-def get_character_appearances(conn, character_name):
-    """
-    Return all issues a character appears in.
-    """
-    query = """
-        SELECT i.issue_id, i.title, s.title
-        FROM Characters c
-        JOIN Issue_Characters ic ON c.character_id = ic.character_id
-        JOIN Issues i ON ic.issue_id = i.issue_id
-        JOIN Series s ON i.series_id = s.series_id
-        WHERE c.name = ?
-        ORDER BY i.issue_id
-    """
-    cur = conn.cursor()
-    cur.execute(query, (character_name,))
-    return cur.fetchall()
 
+
+# Search helper
 
 def search_characters(conn, keyword):
-    """
-    Search for characters by partial name match.
-    """
     query = """
-        SELECT character_id, name, alignment, universe, gender
-        FROM Characters
-        WHERE name LIKE ?
-        ORDER BY name
+        SELECT c.character_id, c.name, c.publisher, s.sex_label, a.align_label
+        FROM Characters c
+        JOIN Sex s ON c.sex_id = s.sex_id
+        JOIN Align a ON c.align_id = a.align_id
+        WHERE c.name LIKE ?
+        ORDER BY c.name
     """
     cur = conn.cursor()
     cur.execute(query, (f"%{keyword}%",))
     return cur.fetchall()
 
 
-# ------------------------------------------------------------
-# Main entry point
-# ------------------------------------------------------------
+
+# Main
+
 def main():
     cleaned_csv = "cleaned_characters.csv"
     db_path = "comics.db"
@@ -198,8 +186,8 @@ def main():
     print("Building database...")
     conn = build_database(db_path)
 
-    print("Populating Characters table...")
-    populate_characters(conn, df)
+    print("Populating tables...")
+    populate_all(conn, df)
 
     conn.close()
     print("Database build complete.")
